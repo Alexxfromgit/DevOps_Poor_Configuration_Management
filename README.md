@@ -1,70 +1,90 @@
-# task4_2
+# Task 4.2 — Configuration Management "for the Poor"
 
-**Task 4.2 - Configuration Management "for the poor".**
+## Overview
 
-Job condition:
+Bash scripts to deploy and verify an NTP server configuration on Ubuntu.
 
-	Create a bash ntp_deploy.sh script that:
-    	• Installs a package with ntp server.
-    	• Removes default settings from the ntp server configuration file
-	  (for example, 0.ubuntu.pool.ntp.org)
-    	• Prescribes ua.pool.ntp.org as an ntp server.
-    	• Restarts ntp service.
-    	• Register the ntp_verify.sh script once a minute for cron.
-	Create a bash ntp_verify.sh script that:
-    	• Checks if ntp process is running. If the process is not running, it starts.
-    	• Checks the fact of changing the configuration file ntp.conf.
-	  If there are changes, output them to stdout.
-	  Returns the configuration file to the correct state and restarts the NTP service.
-	  In other words, the configuration file should be maintained in the state it was created
-	  by ntp_deploy.sh (that is, with the ua.pool.ntp.org ntp server, and not with the default settings).
-    
-Additional requirements:
+---
 
-    1. Bash scripts with completed tasks should be uploaded to the githab repository with the name ‘task4_2’.
-    2. The githab repository ‘task4_2’ should contain 2 ntp_deploy.sh and ntp_verify.sh scripts.
-    3. During the task check, the ntp_verify.sh script can be run multiple times.
+## Scripts
 
-Check results:
+### `ntp_deploy.sh`
 
-    • For each launch, a separate VM will be used (OS ubuntu xenial 16.04 server, image).
-      Based on the features of CRON verification and operation,
-      the sendmail package will be pre-installed on the virtual machine.
-      Scripts will run from under the superuser (root). VM has access to the Internet.
-    • The VM will have a repository with a task (for example, https://github.com/user/task4_2),
-      if the repository has a different name, then the task will be automatically marked as failed.
-    • The script will run automatically ‘ntp_deploy.sh’ from the root folder of the repository
-      (if the script is named differently or is in a subfolder, it will not be launched,
-      respectively, the task will be automatically marked as failed)
-    • During the test, the ntp_verify.sh script can be launched from the console
-      (without waiting for the scheduler to work) and its correct behavior is expected.
-    • After running ntp_deploy.sh, the status of the ntp.conf configuration file will be checked.
-      It is expected that it will differ from the default configuration file only
-      by the configuration of NTP servers and the only configured NTP server will be ua.pool.ntp.org
-    • For a while, while the VM will exist, a wide variety of changes can be made to the ntp.conf configuration file.
-    
-    Expected that:
-        ◦ If no changes are detected, the script does not display any messages
-	  anywhere and does not restart the ntp service.
-        ◦ If the file has been modified, the script:
-            ▪ Displays the difference in stdout.
-            ▪ Restores the state of the ntp.conf file. (i.e. Default + single server ua.pool.ntp.org)
-            ▪ Restarts the ntp daemon.
-    • Checking that the script displayed the difference between the configuration files
-      in stdout when processing the scheduler (cron) will read the file /var/mail/root
-    • Before outputting the difference between the reference and modified ntp.conf file,
-      the line “NOTICE: /etc/ntp.conf was changed. Calculated diff: ”.
-      Sample expected message:
+- Installs the NTP server package
+- Removes default NTP server entries from `ntp.conf` (e.g. `0.ubuntu.pool.ntp.org`)
+- Configures `ua.pool.ntp.org` as the sole NTP server
+- Restarts the NTP service
+- Registers `ntp_verify.sh` to run once per minute via cron
 
-	NOTICE: /etc/ntp.conf was changed. Calculated diff:
-		--- /etc/ntp.conf.bak   2018-03-27 16:45:40.693954805 +0000
-		+++ /etc/ntp.conf       2018-03-27 16:56:55.723992297 +0000
-		@@ -20 +20 @@
-		-pool ua.pool.ntp.org
-		+pool us.pool.ntp.org
-    • Changes in the configuration file should be displayed in “unified format”.
-    • During the existence of the VM after running the ntp_deploy.sh script,
-      the ntp daemon can be stopped. It is expected that after the ntp_verify.sh
-      script is triggered (either via cron or manually started),
-      the script will output the message
-      “NOTICE: ntp is not running” to stdout and start the ntp service.
+### `ntp_verify.sh`
+
+- Checks whether the NTP process is running; starts it if not
+- Checks `ntp.conf` for unauthorized changes:
+  - Outputs the diff to stdout if changes are detected
+  - Restores `ntp.conf` to its deployed state (`ua.pool.ntp.org` only)
+  - Restarts the NTP service
+
+---
+
+## Additional Requirements
+
+1. Both scripts must be uploaded to a GitHub repository named **`task4_2`**.
+2. The repository must contain exactly two files: `ntp_deploy.sh` and `ntp_verify.sh`.
+3. `ntp_verify.sh` may be run multiple times during task verification.
+
+---
+
+## Verification Procedure
+
+### Environment
+
+- **OS:** Ubuntu Xenial 16.04 Server
+- **User:** `root`
+- **Pre-installed packages:** `sendmail`
+- **Network:** internet access available
+
+### Execution Rules
+
+- The repository is cloned by URL (e.g. `https://github.com/user/task4_2`); a different repository name results in automatic failure.
+- `ntp_deploy.sh` is launched automatically from the repository root; a different script name or subdirectory location results in automatic failure.
+- `ntp_verify.sh` may also be run manually from the console without waiting for cron.
+
+---
+
+## Expected Behavior
+
+### After `ntp_deploy.sh`
+
+- `ntp.conf` must differ from the default only in the NTP server section, with `ua.pool.ntp.org` as the sole configured server.
+
+### `ntp_verify.sh` — no changes detected
+
+- Produces no output and does not restart the NTP service.
+
+### `ntp_verify.sh` — changes detected in `ntp.conf`
+
+- Prints the following header line to stdout:
+  ```
+  NOTICE: /etc/ntp.conf was changed. Calculated diff:
+  ```
+- Outputs the diff in **unified format** immediately after the header.
+- Restores `ntp.conf` to the correct state (default settings + `ua.pool.ntp.org` only).
+- Restarts the NTP daemon.
+
+**Sample output:**
+
+```diff
+NOTICE: /etc/ntp.conf was changed. Calculated diff:
+--- /etc/ntp.conf.bak   2018-03-27 16:45:40.693954805 +0000
++++ /etc/ntp.conf       2018-03-27 16:56:55.723992297 +0000
+@@ -20 +20 @@
+-pool ua.pool.ntp.org
++pool us.pool.ntp.org
+```
+
+### `ntp_verify.sh` — NTP daemon is stopped
+
+- Outputs `NOTICE: ntp is not running` to stdout.
+- Starts the NTP service.
+
+> **Note:** When triggered via cron, stdout output is delivered to `/var/mail/root` and will be verified there.
